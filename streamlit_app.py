@@ -38,7 +38,7 @@ if not st.session_state.authenticated:
                         os.remove(token_file)
                         st.info("🗑️ تم مسح بيانات التسجيل السابقة")
                     
-                    service = authenticate_gdrive(open_browser=True)
+                    service = authenticate_gdrive(use_console=True)
                     if service:
                         # الحصول على معلومات الحساب
                         account_info = get_account_info(service)
@@ -140,4 +140,5 @@ else:
         st.session_state.authenticated = False
         st.session_state.current_account = None
         st.session_state.clear()
+
         st.rerun()
