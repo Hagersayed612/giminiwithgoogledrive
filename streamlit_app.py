@@ -29,34 +29,24 @@ if not st.session_state.authenticated:
         """)
     
     with col2:
-        if st.button("🚀 تسجيل الدخول", type="primary", use_container_width=True):
-            with st.spinner("جاري فتح نافذة تسجيل الدخول..."):
-                try:
-                    # حذف token القديم لفرض اختيار حساب جديد
-                    token_file = "token.pickle"
-                    if os.path.exists(token_file):
-                        os.remove(token_file)
-                        st.info("🗑️ تم مسح بيانات التسجيل السابقة")
-                    
-                    service = authenticate_gdrive(use_console=True)
-                    if service:
-                        # الحصول على معلومات الحساب
-                        account_info = get_account_info(service)
-                        
-                        st.session_state.authenticated = True
-                        st.session_state.service = service
-                        st.session_state.current_account = {
-                            'name': account_info['name'],
-                            'email': account_info['email']
-                        }
-                        
-                        st.success(f"✅ تم تسجيل الدخول بنجاح باسم: {account_info['name']}")
-                        st.success(f"📧 البريد الإلكتروني: {account_info['email']}")
-                        st.rerun()
-                    else:
-                        st.error("❌ فشل تسجيل الدخول. حاول مرة أخرى.")
-                except Exception as e:
-                    st.error(f"❌ حدث خطأ أثناء التسجيل: {str(e)}")
+        # في main_streamlit.py
+if st.button("🚀 تسجيل الدخول", type="primary"):
+    with st.spinner("جاري فتح نافذة تسجيل الدخول..."):
+        try:
+            # ✅ استخدم force_new_login=False للمرة الأولى
+            service = authenticate_gdrive(use_console=False, force_new_login=False)
+            
+            if service:
+                account_info = get_account_info(service)
+                st.session_state.authenticated = True
+                st.session_state.service = service
+                st.session_state.current_account = account_info
+                st.success(f"✅ تم الدخول: {account_info['name']}")
+                st.rerun()
+            else:
+                st.error("❌ فشل التسجيل - تحقق من ملف credentials.json")
+        except Exception as e:
+            st.error(f"❌ خطأ: {str(e)}")
                     # التأكد من حذف token في حالة الخطأ
                     token_file = "token.pickle"
                     if os.path.exists(token_file):
@@ -142,3 +132,4 @@ else:
         st.session_state.clear()
 
         st.rerun()
+
