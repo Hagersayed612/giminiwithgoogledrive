@@ -16,8 +16,13 @@ def authenticate_gdrive(use_console=False):
     creds = None
     token_file = "token.pickle"
     try:
-        if os.path.exists(token_file):
-            os.remove(token_file)
+        # احذف التوكن فقط إذا كان فاسداً، ليس دائماً
+    if os.path.exists(token_file):
+       with open(token_file, "rb") as token:
+          creds = pickle.load(token)
+    
+      if creds and creds.valid:
+          return build("drive", "v3", credentials=creds)  # استخدم التوكن الموجود
 
         flow = InstalledAppFlow.from_client_secrets_file(
             "client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",
@@ -237,6 +242,7 @@ def main():
         print("🤖 جاري توليد الإجابة...")
         answer = answer_with_gemini(query, context, best_files)
         print(f"\n💡 الإجابة:\n{answer}")
+
 
 
 
