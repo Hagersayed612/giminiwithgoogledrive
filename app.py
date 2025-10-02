@@ -12,38 +12,46 @@ warnings.filterwarnings('ignore')
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
 # -------------------- المصادقة المحسنة --------------------
-def authenticate_gdrive(open_browser=True):
+def authenticate_gdrive(use_console=False):
     creds = None
     token_file = "token.pickle"
     
     try:
-        # دائمًا نبدأ بمصادقة جديدة لاختيار الحساب
+        # احذف أي token قديم عشان يطلب اختيار الحساب كل مرة
         if os.path.exists(token_file):
-            os.remove(token_file)  # حذف أي token قديم
-        
+            os.remove(token_file)
+
         flow = InstalledAppFlow.from_client_secrets_file(
             "client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",
             SCOPES
         )
         
-        # إعدادات تضمن اختيار الحساب كل مرة
-       creds = flow.run_local_server(
-          port=0,
-          prompt='consent',
-          access_type='offline'
-)
+        # لو شغال محلي → افتح المتصفح
+        if not use_console:
+            creds = flow.run_local_server(
+                port=0,
+                prompt='consent',
+                access_type='offline'
+            )
+        else:
+            # لو سيرفر (زي Streamlit Cloud) → استخدم الكونسول
+            creds = flow.run_console(
+                prompt='consent',
+                access_type='offline'
+            )
 
         # حفظ الـ token الجديد
         with open(token_file, "wb") as token:
             pickle.dump(creds, token)
 
         return build("drive", "v3", credentials=creds)
+
     except Exception as e:
         print(f"❌ خطأ في المصادقة: {e}")
-        # تنظيف token في حالة الخطأ
         if os.path.exists(token_file):
             os.remove(token_file)
         return None
+
 
 # -------------------- الحصول على معلومات الحساب --------------------
 def get_account_info(service):
@@ -151,25 +159,13 @@ def search(query, documents, file_names, file_ids, doc_embeddings, top_k=3):
         else:
             sims.append(0.0)
     
-    # تحديد عتبة التشابه الأدنى
     min_similarity_threshold = 0.3
-    
-    # فلترة النتائج بناءً على عتبة التشابه
-    filtered_indices = []
-    filtered_scores = []
-    
-    for i, score in enumerate(sims):
-        if score >= min_similarity_threshold:
-            filtered_indices.append(i)
-            filtered_scores.append(score)
-    
-    # إذا لم توجد نتائج تفي بالعتبة، نرجع قوائم فارغة
+    filtered_indices = [i for i, score in enumerate(sims) if score >= min_similarity_threshold]
     if not filtered_indices:
         return "", [], [], []
     
-    # أخذ أفضل النتائج المفلترة
-    sorted_filtered = sorted(zip(filtered_indices, filtered_scores), key=lambda x: x[1], reverse=True)
-    top_idx = [idx for idx, _ in sorted_filtered[:top_k]]
+    sorted_filtered = sorted(filtered_indices, key=lambda i: sims[i], reverse=True)
+    top_idx = sorted_filtered[:top_k]
     
     context = "\n\n".join([documents[i] for i in top_idx])
     best_files = [file_names[i] for i in top_idx]
@@ -180,7 +176,6 @@ def search(query, documents, file_names, file_ids, doc_embeddings, top_k=3):
 
 # -------------------- توليد الإجابة المحسنة --------------------
 def answer_with_gemini(query, context, source_files):
-    # إذا كان السياق فارغًا، يعني لا توجد ملفات مناسبة
     if not context.strip():
         return "❌ لا توجد ملفات تحتوي على إجابة لسؤالك في Drive."
     
@@ -200,29 +195,24 @@ def answer_with_gemini(query, context, source_files):
 """
     try:
         resp = model.generate_content(prompt)
-        if hasattr(resp, "text") and resp.text:
-            return resp.text
-        else:
-            return "⚠️ لم أستطع توليد إجابة"
+        return resp.text if hasattr(resp, "text") and resp.text else "⚠️ لم أستطع توليد إجابة"
     except Exception as e:
         return f"⚠️ خطأ في توليد الإجابة: {str(e)}"
 
-# -------------------- الدالة الرئيسية المعدلة --------------------
+# -------------------- الدالة الرئيسية --------------------
 def main():
     print("🔐 جاري المصادقة مع Google Drive...")
-    service = authenticate_gdrive()
+    service = authenticate_gdrive(use_console=False)  # غيّريها True لو بتشغليه على سيرفر
     
     if not service:
         print("❌ فشلت المصادقة. تأكد من ملف credentials.")
         return
     
-    # الحصول على معلومات الحساب
     account_info = get_account_info(service)
     print(f"✅ تمت المصادقة بنجاح! الحساب: {account_info['name']} ({account_info['email']})")
     
     print("📁 جاري فهرسة الملفات في Drive...")
     documents, file_names, file_ids = index_drive_files(service)
-    
     if not documents:
         print("❌ لم يتم العثور على ملفات نصية قابلة للقراءة.")
         return
@@ -239,14 +229,12 @@ def main():
         if query.lower() in ['خروج', 'exit', 'quit']:
             print("👋 مع السلامة!")
             break
-            
         if not query:
             continue
             
         print("🔍 جاري البحث...")
         context, best_files, best_file_ids, best_scores = search(query, documents, file_names, file_ids, doc_embeddings)
         
-        # إذا لم توجد ملفات مناسبة
         if not context.strip():
             print("❌ لا توجد ملفات تحتوي على إجابة لسؤالك في Drive.")
             continue
@@ -258,7 +246,3 @@ def main():
         print("🤖 جاري توليد الإجابة...")
         answer = answer_with_gemini(query, context, best_files)
         print(f"\n💡 الإجابة:\n{answer}")
-
-
-
-
