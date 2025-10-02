@@ -22,7 +22,7 @@ def authenticate_gdrive(open_browser=True):
             os.remove(token_file)  # حذف أي token قديم
         
         flow = InstalledAppFlow.from_client_secrets_file(
-            r"D:\google\client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",
+            "client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",
             SCOPES
         )
         
@@ -260,4 +260,5 @@ def main():
         print("🤖 جاري توليد الإجابة...")
         answer = answer_with_gemini(query, context, best_files)
         print(f"\n💡 الإجابة:\n{answer}")
+
 
