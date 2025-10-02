@@ -20,7 +20,7 @@ def authenticate_gdrive(use_console=False):
             os.remove(token_file)
 
         flow = InstalledAppFlow.from_client_secrets_file(
-            "client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",  # غير اسم الملف لو عندك مختلف
+            "client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",
             SCOPES
         )
 
@@ -38,10 +38,11 @@ def authenticate_gdrive(use_console=False):
 
         return build("drive", "v3", credentials=creds)
     except Exception as e:
-        print(f"❌ خطأ في المصادقة: {e}")
+        print(f"❌ خطأ في المصادقة: {e}")   # هنا
         if os.path.exists(token_file):
             os.remove(token_file)
         return None
+
 
 # -------------------- الحصول على معلومات الحساب --------------------
 def get_account_info(service):
@@ -236,5 +237,6 @@ def main():
         print("🤖 جاري توليد الإجابة...")
         answer = answer_with_gemini(query, context, best_files)
         print(f"\n💡 الإجابة:\n{answer}")
+
 
 
