@@ -15,43 +15,33 @@ SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 def authenticate_gdrive(use_console=False):
     creds = None
     token_file = "token.pickle"
-    
     try:
-        # احذف أي token قديم عشان يطلب اختيار الحساب كل مرة
         if os.path.exists(token_file):
             os.remove(token_file)
 
         flow = InstalledAppFlow.from_client_secrets_file(
-            "client_secret_2_368639615599-s553j8nei3iolbq4as35abevl4ba6m61.apps.googleusercontent.com.json",
+            "client_secret.json",  # غير اسم الملف لو عندك مختلف
             SCOPES
         )
-        
-        # لو شغال محلي → افتح المتصفح
-        if not use_console:
+
+        if not use_console:   # لو شغال محلي
             creds = flow.run_local_server(
-                port=0,
-                prompt='consent',
-                access_type='offline'
+                port=0, prompt='consent', access_type='offline'
             )
-        else:
-            # لو سيرفر (زي Streamlit Cloud) → استخدم الكونسول
+        else:  # لو سيرفر (Streamlit Cloud)
             creds = flow.run_console(
-                prompt='consent',
-                access_type='offline'
+                prompt='consent', access_type='offline'
             )
 
-        # حفظ الـ token الجديد
         with open(token_file, "wb") as token:
             pickle.dump(creds, token)
 
         return build("drive", "v3", credentials=creds)
-
     except Exception as e:
         print(f"❌ خطأ في المصادقة: {e}")
         if os.path.exists(token_file):
             os.remove(token_file)
         return None
-
 
 # -------------------- الحصول على معلومات الحساب --------------------
 def get_account_info(service):
@@ -246,3 +236,4 @@ def main():
         print("🤖 جاري توليد الإجابة...")
         answer = answer_with_gemini(query, context, best_files)
         print(f"\n💡 الإجابة:\n{answer}")
+
