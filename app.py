@@ -28,9 +28,9 @@ def authenticate_gdrive(open_browser=True):
         
         # إعدادات تضمن اختيار الحساب كل مرة
        creds = flow.run_local_server(
-    port=0,
-    prompt='consent',
-    access_type='offline'
+          port=0,
+          prompt='consent',
+          access_type='offline'
 )
 
         # حفظ الـ token الجديد
@@ -258,6 +258,7 @@ def main():
         print("🤖 جاري توليد الإجابة...")
         answer = answer_with_gemini(query, context, best_files)
         print(f"\n💡 الإجابة:\n{answer}")
+
 
 
 
